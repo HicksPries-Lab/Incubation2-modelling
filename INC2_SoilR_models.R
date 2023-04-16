@@ -41,8 +41,8 @@ gamma_soil <- c(0.446229175
 # TIME VECTOR
 #days <- 0:3650
 end_day <- 365*100  ### CHANGE TIME VECTOR [days] ### 
-days <- seq(from = 1, to = end_day, by = 1)
-# days <- seq(from = 1, to = end_day, by = 365/5)
+# days <- seq(from = 1, to = end_day, by = 1)
+days <- seq(from = 1, to = end_day, by = 365/5)
 #days <- seq(0, round(last(CO2flux$time)))  # this days vector is just the length of your data
 
 # INPUT VECTOR - CHANGE HERE, Either you can do inputs_frame = 0 for no inputs, or use the other loop
@@ -86,7 +86,7 @@ theme_C <- theme_light() +
 CO2flux_0 <- read.csv("INC2data_mod.csv", header=TRUE) ### CHANGE V/P ###
 
 # LOOP THROUGH ALL MODELS
-#while (i < num_treatments+1) {    # COMMENT IN/OUT TO CHECK FOR ONE TREATMENT, loop through 5 treatments
+while (i < num_treatments+1) {    # COMMENT IN/OUT TO CHECK FOR ONE TREATMENT, loop through 5 treatments
 
 CO2flux <- CO2flux_0 %>%
   filter(Num == i) %>%    # loop through treatment
@@ -128,9 +128,9 @@ fitCumm=getAccumulatedRelease(fitmod)
 a <- rowSums(fitCumm)
 
 #Plot the results, crap fit, which is not unexpected, it also does warn us that Nelder-Mead sucks at single optimization
-plot(CO2flux[,1:2],type="p",xlab="Days",
-     ylab="Cummulative respiration (mg C g-1 soil)")  #IT'S NOT mg/g UNLESS I DO DIVIDE BY 50
-lines(rowSums(fitCumm))
+# plot(CO2flux[,1:2],type="p",xlab="Days",
+#      ylab="Cummulative respiration (mg C g-1 soil)")  #IT'S NOT mg/g UNLESS I DO DIVIDE BY 50
+# lines(rowSums(fitCumm))
 
 fitCumm1 <- rowSums(fitCumm)
 totalfitCumm[, n] <- fitCumm1
@@ -218,7 +218,8 @@ eCO2func=function(pars){
   return(data.frame(time=CO2flux$time,cummCO2=rowSums(AccR)))
 }
 
-inipars=c(k2=.00001, alpha21=0.0001)
+inipars=c(k2=.002, alpha21=0.9)
+
 
 eCO2fit=modFit(f=eCO2cost,p=inipars,method="Nelder-Mead",
                upper=c(Inf,1),lower=c(0,0))
@@ -245,7 +246,7 @@ fitframe3 <- data.frame(days, fitCumm3)
 plot2ps <- ggplot() +
   geom_point(data = CO2flux, aes(x = time, y = cummCO2), shape = 1) +
   geom_line(data = fitframe3, aes(x = days, y = fitCumm3)) +
-  xlim(0, 5*max(CO2flux$time)) +  # to only see relevant model data
+  xlim(0, 1.5*max(CO2flux$time)) +  # to only see relevant model data
   labs(x = 'Time [days]', y = 'Cumulative CO2 Released [mg]', title = '2 Pool Series Model') +
   theme_C
 plot2ps
@@ -266,7 +267,7 @@ eCO2func=function(pars){
 }
 
 #inipars=c(k1=1, k2=0.8) #for deeper depths, need different starting values
-inipars=c(k2=0.000000001) #ONCE YOU HAVE K1 for deeper depths, need different starting values
+inipars=c(k2=0.002) #ONCE YOU HAVE K1 for deeper depths, need different starting values
 eCO2fit=modFit(f=eCO2cost,p=inipars,method="Nelder-Mead",
                upper=c(Inf),lower=c(0))
 
