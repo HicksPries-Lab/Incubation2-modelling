@@ -6,6 +6,8 @@ library(tidyverse)
 library(SoilR)
 library(FME)
 
+setwd("/Users/f003833/Documents/GitHub/Incubation2-modelling")
+
 # Intializations
 i = 2 # CHANGE IF INTERESTED, treatment type 
 #Sample key as follows:
@@ -120,6 +122,8 @@ onep_par[[i]] <- eCO2fit$par
 fitmod=OnepModel(t=days, k=eCO2fit$par[1],
                  In = inputs_frame,
                  C0=Ctotal)
+
+
 fitCumm=getAccumulatedRelease(fitmod)
 a <- rowSums(fitCumm)
 
@@ -433,3 +437,58 @@ write.csv(twops_par, file = 'INC2_twops_fixedkgam.csv') ### CHANGE V/P ###
 # Export the cummCO2
 write.csv(totalfitCumm, file = 'INC2_FIXEDKGAME_projectedcummCO2.csv') ### CHANGE V/P ###
 
+
+
+
+
+#three pool
+eCO2func=function(pars){
+  mod=ThreepParallelModel(
+    t=days,
+    ks=pars[1:3],
+    gam1=pars[4],
+    gam2=pars[5],
+    C0=Ctotal*c(pars[4],pars[5],1-pars[4]-pars[5]), 
+    In=0,
+    pass=TRUE
+  )
+  AccR=getAccumulatedRelease(mod)
+  return(data.frame(time=days,cummCO2=rowSums(AccR)))
+}
+
+eCO2cost=function(pars){
+  modelOutput=eCO2func(pars)
+  return(modCost(model=modelOutput, obs=CO2flux))
+}
+
+inipars=c(k1=0.005,k2=0.00005,k3=0.000000005,gam1=0.01, gam2=0.1) #for deeper depths, need different starting values
+
+eCO2fit=modFit(f=eCO2cost,p=inipars,method="Nelder-Mead",
+               upper=c(Inf,Inf,Inf,1,1),lower=c(0,0,0,0,0))
+
+eCO2fit$par
+
+#Run the model again with best parameter set
+fitmod=ThreepParallelModel(t=days, ks=eCO2fit$par[1:3], 
+                           gam1=eCO2fit$par[4],
+                           gam2=eCO2fit$par[5],
+                           C0=Ctotal*c(eCO2fit$par[4],eCO2fit$par[5],1-eCO2fit$par[4]-eCO2fit$par[5]), 
+                           In=0)
+fitCumm=getAccumulatedRelease(fitmod)
+
+#Plot the results
+plot(CO2flux[,1:2],type="p",xlab="Days",
+     ylab="Cummulative respiration (mg C g-1 soil)")
+lines(rowSums(fitCumm))
+
+fitCumm1 <- rowSums(fitCumm)
+fitframe <- data.frame(days, fitCumm1)
+
+plot1 <- ggplot() +
+  geom_point(data = CO2flux, aes(x = time, y = cummCO2), shape = 1) + # INC data
+  geom_line(data = fitframe, aes(x = days, y = fitCumm1)) +  # model data
+  xlim(0, 500) +
+  #ylim(0, 100) +
+  labs(x = 'Time [days]', y = 'Cumulative CO2 Released [mg]', title = '3 Pool Model') +
+  theme_C
+plot1
