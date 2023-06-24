@@ -6,7 +6,6 @@ library(tidyverse)
 library(SoilR)
 library(FME)
 
-setwd("/Users/f003833/Documents/GitHub/Incubation2-modelling")
 
 # Intializations
 i = 2 # CHANGE IF INTERESTED, treatment type 
@@ -96,7 +95,7 @@ Ctotal= Cinits[i]        ### initial total C from IRMS (mg C in treatment) ###
 #cost function
 eCO2cost=function(pars){
   modelOutput=eCO2func(pars)
-  return(modCost(model=modelOutput, obs=CO2flux[,1:2]))
+  return(modCost(model=modelOutput, obs=CO2flux[,1:2]))#CO2flux[c(1,3,5,7,9,11,12:29),1:2]))#CO2flux[,1:2]))
 }
 
 ###one pool model####
@@ -370,6 +369,17 @@ inipars=c(k1=0.005,k2=0.000000005,gamma=0.08) #for deeper depths, need different
 eCO2fit=modFit(f=eCO2cost,p=inipars,method="Nelder-Mead",
                upper=c(Inf,Inf,1),lower=c(0,0,0))
 
+# Caitlin's extra code that checks parameters
+# var2 = eCO2fit$var_ms_unweighted    # saves parameters
+# fitmcmcF1 = modMCMC(f=eCO2cost, p=eCO2fit$par, niter=500, ntrydr = 5,     # adjusts parameters
+#                     updatecov = 50, var0=var2, upper=c(Inf,Inf,1),lower=c(0,0,0))#upper=c(3,rep(1,5)), lower=rep(0,6))
+# 
+# fitmod=TwopParallelModel(t=days, ks=fitmcmcF1$par[1,1:2],   # fits model w new parameters
+#                          gam=fitmcmcF1$par[1,3],
+#                          C0=Ctotal*c(fitmcmcF1$par[1,3],1-fitmcmcF1$par[1,3]),
+#                          In = inputs_frame,)
+# fitCumm=getAccumulatedRelease(fitmod)   # outputs what you're interested in
+
 twopp_par[[i]] <- eCO2fit$par
 
 #Run the model again with best parameter set
@@ -487,8 +497,15 @@ fitframe <- data.frame(days, fitCumm1)
 plot1 <- ggplot() +
   geom_point(data = CO2flux, aes(x = time, y = cummCO2), shape = 1) + # INC data
   geom_line(data = fitframe, aes(x = days, y = fitCumm1)) +  # model data
-  xlim(0, 500) +
+  xlim(0, 100) +
   #ylim(0, 100) +
   labs(x = 'Time [days]', y = 'Cumulative CO2 Released [mg]', title = '3 Pool Model') +
   theme_C
 plot1
+
+# for treatment 1 what this says is that it only releases 150 out of 1200??? like how is that ok
+# like yea it fits data but also it's not guessing soil
+# general question does it matter then, fixing the data?
+# bc i could just have it guess all parameters all the time
+# 1/k is turnover time
+# k1 = fast, k2 = faster, k3 = slowest
