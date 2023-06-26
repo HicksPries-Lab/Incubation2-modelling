@@ -1,4 +1,5 @@
-# Graphs for Thesis
+## GRAPHS FOR WANG THESIS 2023
+## Author: Michelle S. Wang, michelle.s.wang.th@dartmouth.edu
 
 # Load packages + functions
 library(tidyverse)
